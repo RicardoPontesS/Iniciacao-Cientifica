@@ -1,0 +1,5 @@
+Módulo Gsm Gprs Sim800l Com Antena Sma
+Bateria 9v 2amp
+Chip celular
+Regulador de tensão
+Conector jack
