@@ -49,11 +49,8 @@ void loop() {
     buttonState = digitalRead(4);
     if (buttonState == HIGH) {
       cont++;
-      if (cont == 1) {
-        while (serial1.available()) {
-     char cIn = serial1.read();
-     recebido = gps1.encode(cIn);
-  }
+      while (cont == 1) {
+        
         latEscolhida = latPadrao1;
         longEscolhida = longPadrao1;
         digitalWrite (6, HIGH);
@@ -77,11 +74,8 @@ void loop() {
                   Serial.println(float(longitude) / 100000, 6);
              }
         
-      } else if (cont == 2) {
-        while (serial1.available()) {
-     char cIn = serial1.read();
-     recebido = gps1.encode(cIn);
-  }
+      } while (cont == 2) {
+        
         latEscolhida = latPadrao2;
         longEscolhida = longPadrao2;
         digitalWrite (6, HIGH);
@@ -95,7 +89,7 @@ void loop() {
         delay(2000);
         Serial.println("Cordenadas 2");
         if (recebido) {
-     Serial.println("----------------------------------------");
+      Serial.println("----------------------------------------");
      
      //Latitude e Longitude
      long latitude, longitude;
@@ -112,11 +106,8 @@ void loop() {
         Serial.println(float(longitude) / 100000, 6);
      }
         }
-      } else if (cont == 3) {
-        while (serial1.available()) {
-     char cIn = serial1.read();
-     recebido = gps1.encode(cIn);
-  }
+      } while (cont == 3) {
+        
         latEscolhida = latPadrao3;
         longEscolhida = longPadrao3;
         digitalWrite (6, HIGH);
