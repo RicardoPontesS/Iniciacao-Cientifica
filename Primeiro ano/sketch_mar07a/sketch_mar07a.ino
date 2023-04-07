@@ -49,6 +49,7 @@ void loop() {
     buttonState = digitalRead(4);
     if (buttonState == HIGH) {
       cont++;
+    }
       while (cont == 1) {
         
         latEscolhida = latPadrao1;
@@ -73,7 +74,10 @@ void loop() {
                   Serial.print("Longitude: ");
                   Serial.println(float(longitude) / 100000, 6);
              }
-        
+        buttonState = digitalRead(4);
+        if (buttonState == HIGH) {
+      cont++;
+      }
       } while (cont == 2) {
         
         latEscolhida = latPadrao2;
@@ -106,6 +110,10 @@ void loop() {
         Serial.println(float(longitude) / 100000, 6);
      }
         }
+        buttonState = digitalRead(4);
+        if (buttonState == HIGH) {
+      cont++;
+    }
       } while (cont == 3) {
         
         latEscolhida = latPadrao3;
@@ -140,10 +148,14 @@ void loop() {
         Serial.print("Longitude: ");
         Serial.println(float(longitude) / 100000, 6);
      }
+     buttonState = digitalRead(4);
+     if (buttonState == HIGH) {
+      cont++;
+    }
       }
       }
     }
   }
      float sentido_para;
 //     sentido_para = gps1.course_to(latitude, longitude, latEscolhida, longEscolhida);
-  }
+  
