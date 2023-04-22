@@ -1,188 +1,222 @@
 #include <SoftwareSerial.h>
+#include <TinyGPS.h>                                                                                                                              
 
-SoftwareSerial serialGSM(10, 11); // RX, TX
+SoftwareSerial serial1(10, 11); // RX, TX
+SoftwareSerial serialGSM(9, 8); // RX, T
 
-bool temSMS = false;
-String telefoneSMS;
-String dataHoraSMS;
-String mensagemSMS;
-String comandoGSM = "";
-String ultimoGSM = "";
+TinyGPS gps1;
 
-#define senhaGsm "1234"
-#define pinBotaoCall 12
-#define numeroCall "984154837" 
+  void enviaSMS(String telefone, String mensagem);
+  void configuraGSM();
+  String telefoneSMS;
+  String mensagemSMS;
+  long latitude, longitude;
+  unsigned long idadeInfo;
+  float latPadrao1 = -21.761480;
+  float longPadrao1 = -41.291248;
 
-bool callStatus = false;
+  float latPadrao2 = -21.762023;
+  float longPadrao2 = -41.290881;
 
-void leGSM();
-void enviaSMS(String telefone, String mensagem);
-void fazLigacao(String telefone);
-void configuraGSM();
+  float latPadrao3 = -21.762785;
+  float longPadrao3 = -41.290492;
+
+  float latEscolhida = 0;
+  float longEscolhida = 0;
 
 void setup() {
+   serial1.begin(9600);
+   Serial.begin(9600);
 
-  Serial.begin(9600);
-  serialGSM.begin(9600); 
-
-  pinMode(pinBotaoCall, INPUT_PULLUP);
-
-  Serial.println("Sketch Iniciado!");
-  configuraGSM();
+  pinMode (7, OUTPUT);
+  pinMode (6, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(4, INPUT);
+  pinMode(3, OUTPUT);
+   Serial.println("Módulo GPS buscando sinal dos satelites...");
 }
 
 void loop() {
-  leGSM();
+  int cont = 0;
 
-  if (comandoGSM != "") {
-      Serial.println(comandoGSM);
-      ultimoGSM = comandoGSM;
-      comandoGSM = "";
-  }
-
-  if (temSMS) {
-
-     Serial.println("Chegou Mensagem!!");
-     Serial.println();
-    
-     Serial.print("Remetente: ");  
-     Serial.println(telefoneSMS);
-     Serial.println();
-    
-     Serial.print("Data/Hora: ");  
-     Serial.println(dataHoraSMS);
-     Serial.println();
-    
-     Serial.println("Mensagem:");  
-     Serial.println(mensagemSMS);
-     Serial.println();
-      
-     mensagemSMS.trim();      
-     if ( mensagemSMS == senhaGsm ) {
-        Serial.println("Enviando SMS de Resposta.");  
-         enviaSMS(telefoneSMS, "SMS Recebido e Senha OK!");
-     }
-     temSMS = false;
-  }
-
-  if (!digitalRead(pinBotaoCall) && !callStatus) {
-     Serial.println("Afetuando Ligacao..."); 
-     fazLigacao(numeroCall);
-     callStatus = true;
-  }
-
-  if (ultimoGSM.indexOf("+COLP:") > -1) {
-     Serial.println("LIGACAO EM ANDAMENTO");
-     ultimoGSM = "";                
-  }
-       
-  if (ultimoGSM.indexOf("NO CARRIER") > -1) {
-     Serial.println("LIGACAO TERMINADA");
-     ultimoGSM = "";
-     callStatus = false;
-  }
-       
-  if (ultimoGSM.indexOf("BUSY") > -1) {
-     Serial.println("LINHA/NUMERO OCUPADO");
-     ultimoGSM = "";
-     callStatus = false;
-  }
-
-  if (ultimoGSM.indexOf("NO DIALTONE") > -1) {
-     Serial.println("SEM LINHA");
-     ultimoGSM = "";
-     callStatus = false;
-  }
-       
-  if (ultimoGSM.indexOf("NO ANSWER") > -1) {
-     Serial.println("NAO ATENDE");
-     ultimoGSM = "";
-     callStatus = false;
-  }
+  int buttonState;
+  digitalWrite (5, HIGH);
+  digitalWrite (3, HIGH);
+  digitalWrite (6, LOW);
   
-}
+  bool recebido = false;
 
-void leGSM()
-{
-  static String textoRec = "";
-  static unsigned long delay1 = 0;
-  static int count=0;  
-  static unsigned char buffer[64];
-
-  if (serialGSM.available()) {            
- 
-     while(serialGSM.available()) {         
-   
-        buffer[count++] = serialGSM.read();     
-        if(count == 64)break;
-     }
-
-     textoRec += (char*)buffer;
-     delay1   = millis();
-     
-     for (int i=0; i<count; i++) {
-         buffer[i]=NULL;
-     } 
-     count = 0;                       
+  while (serial1.available()) {
+     char cIn = serial1.read();
+     recebido = gps1.encode(cIn);
   }
-
-
-  if ( ((millis() - delay1) > 100) && textoRec != "" ) {
-
-     if ( textoRec.substring(2,7) == "+CMT:" ) {
-        temSMS = true;
-     }
-
-     if (temSMS) {
+  buttonState = digitalRead(4);
+ 
+  if(buttonState == HIGH) {
+      enviaSMS("992558278", "olá");
+    }
+  if (recebido) {
+    
+     Serial.println("----------------------------------------");
+     digitalWrite (7, HIGH);
+          while (cont <= 3) {
+              buttonState = digitalRead(4);
+              if (buttonState == HIGH) {
+                  cont++;
+              }
+      if (cont == 1) {
+        
+        latEscolhida = latPadrao1;
+        longEscolhida = longPadrao1;
+        digitalWrite (6, HIGH);
+        tone(6, 2000, 10);
+        delay (2000);
+        digitalWrite (6, LOW);
+        
+       
+        Serial.println("Cordenada 1");
+            Serial.println("----------------------------------------");
             
-        telefoneSMS = "";
-        dataHoraSMS = "";
-        mensagemSMS = "";
+            //Latitude e Longitude
+            unsigned long idadeInfo;
+            gps1.get_position(&latitude, &longitude, &idadeInfo);     
 
-        byte linha = 0;  
-        byte aspas = 0;
-        for (int nL=1; nL < textoRec.length(); nL++) {
+             if (latitude != TinyGPS::GPS_INVALID_F_ANGLE) {
+                Serial.print("Latitude: ");
+                Serial.println(float(latitude) / 100000, 6);
+             }
 
-            if (textoRec.charAt(nL) == '"') {
-               aspas++;
-               continue;
-            }                        
-          
-            if ( (linha == 1) && (aspas == 1) ) {
-               telefoneSMS += textoRec.charAt(nL);
-            }
+             if (longitude != TinyGPS::GPS_INVALID_F_ANGLE) {
+                  Serial.print("Longitude: ");
+                  Serial.println(float(longitude) / 100000, 6);
+             }
 
-            if ( (linha == 1) && (aspas == 5) ) {
-               dataHoraSMS += textoRec.charAt(nL);
-            }
-
-            if ( linha == 2 ) {
-               mensagemSMS += textoRec.charAt(nL);
-            }
-
-            if (textoRec.substring(nL - 1, nL + 1) == "\r\n") {
-               linha++;
-            }
+         float bearing = gps1.course_to(latitude, longitude, latEscolhida, longEscolhida);
+        if (abs(bearing) > 2) { // Se o ângulo for maior que 2 graus, aciona o bip
+          Serial.println(bearing);
+          digitalWrite(6, HIGH);
+          tone(6, 1000, 500);
+          digitalWrite(6, LOW);
         }
-     } else {
-       comandoGSM = textoRec;
+ 
+        buttonState = digitalRead(4);
+            if (buttonState == HIGH) {
+                cont++;
+            }
+       
+  while (serial1.available()) {
+     char cIn = serial1.read();
+     recebido = gps1.encode(cIn);
+  }
+      } if (cont == 2) {
+        
+        latEscolhida = latPadrao2;
+        longEscolhida = longPadrao2;
+        digitalWrite (6, HIGH);
+        tone(6, 2000, 10);
+        delay (500);
+        digitalWrite (6, LOW);
+        digitalWrite (6, HIGH);
+        tone(6, 2000, 10);
+        delay (500);
+        digitalWrite (6, LOW);
+        delay(2000);
+        
+        Serial.println("Cordenada 2");
+            Serial.println("----------------------------------------");
+            
+            //Latitude e Longitude
+            unsigned long idadeInfo;
+            gps1.get_position(&latitude, &longitude, &idadeInfo);     
+
+             if (latitude != TinyGPS::GPS_INVALID_F_ANGLE) {
+                Serial.print("Latitude: ");
+                Serial.println(float(latitude) / 100000, 6);
+             }
+
+             if (longitude != TinyGPS::GPS_INVALID_F_ANGLE) {
+                  Serial.print("Longitude: ");
+                  Serial.println(float(longitude) / 100000, 6);
+             }
+
+         float bearing = gps1.course_to(latitude, longitude, latEscolhida, longEscolhida);
+        if (abs(bearing) > 2) { // Se o ângulo for maior que 2 graus, aciona o bip
+          Serial.println(bearing);
+          digitalWrite(6, HIGH);
+          tone(6, 1000, 500);
+          digitalWrite(6, LOW);
+        }
+        
+             
+        buttonState = digitalRead(4);
+            if (buttonState == HIGH) {
+                cont++;
+            }
+      
+  while (serial1.available()) {
+     char cIn = serial1.read();
+     recebido = gps1.encode(cIn);
+  }
+      } if (cont == 3) {
+        
+        latEscolhida = latPadrao3;
+        longEscolhida = longPadrao3;
+        digitalWrite (6, HIGH);
+        tone(6, 2000, 10);
+        delay (500);
+        digitalWrite (6, LOW);
+        digitalWrite (6, HIGH);
+        tone(6, 2000, 10);
+        delay (500);
+        digitalWrite (6, LOW);
+        digitalWrite (6, HIGH);
+        tone(6, 2000, 10);
+        delay (500);
+        digitalWrite (6, LOW);
+        delay(2000);
+
+      float bearing = gps1.course_to(latitude, longitude, latEscolhida, longEscolhida);
+         
+           if (abs(bearing) > 2) { // Se o ângulo for maior que 2 graus, aciona o bip
+          Serial.println(bearing);
+          digitalWrite(6, HIGH);
+          tone(6, 1000, 500);
+          digitalWrite(6, LOW);
+        }
+        Serial.println("Cordenadas 3");
+     Serial.println("----------------------------------------");
+     gps1.get_position(&latitude, &longitude, &idadeInfo);     
+
+     if (latitude != TinyGPS::GPS_INVALID_F_ANGLE) {
+        Serial.print("Latitude: ");
+        Serial.println(float(latitude) / 100000, 6);
      }
-     
-     textoRec = "";  
-  }     
-}
 
+     if (longitude != TinyGPS::GPS_INVALID_F_ANGLE) {
+        Serial.print("Longitude: ");
+        Serial.println(float(longitude) / 100000, 6);
+     }
+     buttonState = digitalRead(4);
 
+     if (buttonState == HIGH) {
+      cont++;
+    }
+    
+  while (serial1.available()) {
+     char cIn = serial1.read();
+     recebido = gps1.encode(cIn);
+  }
+      }
+      }
+     digitalWrite (7, LOW);
+    }
+    if(cont>3){
+      cont=0;
+    }
+  }
 void enviaSMS(String telefone, String mensagem) {
   serialGSM.print("AT+CMGS=\"" + telefone + "\"\n");
   serialGSM.print(mensagem + "\n");
-  serialGSM.print((char)26); 
-}
-
-void fazLigacao(String telefone) {
-  serialGSM.println("ATH0\n");
-  serialGSM.print((char)26); 
-  serialGSM.println("ATD " + telefone + ";\n");
   serialGSM.print((char)26); 
 }
 
